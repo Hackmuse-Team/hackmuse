@@ -58,3 +58,17 @@ What we agreed before and during the build (hack day, 2026-10-30). Newest decisi
 | B2 | Headline score = **plain average** of the review's 8 criteria (0–100). No weights. | The review prompt explicitly assigns none; the old weights belonged to the placeholder rubric. |
 | B3 | Hackathon URL + rules default to the Linz hack day and sit behind an "Edit" toggle. | Backend requires them; the demo should still be one field. |
 | B4 | `/api/evaluations` is left as is and not called from the UI. | Its live providers are unimplemented stubs. |
+
+## Round 4 (week 2 of the scale plan, 2026-11-01)
+
+| # | Decision | Why |
+|---|----------|-----|
+| S1 | **Shark tank framing.** Five sharks plus the Tank Master replace the courtroom (trial, case file, wig, "on trial", Contender/Pivot). Ids stay `chair/shark/builder/angel/visionary/operator`; names, roles, briefs, avatars (back fin, captain's cap) and copy change. No "Shark Tank" in names or copy (TV trademark). | One metaphor people get instantly; each shark = one way ideas die. |
+| S2 | **One rubric, 8 criteria, equal weight** (`lib/rubric.ts`). The panel scores them 0–10, the review 0–100 (`gemmaCriteria` now derives from it). Weights removed everywhere. | Two rubrics confused the scorecard; no data yet says which criterion predicts a win. |
+| S3 | **Grades:** Apex ≥85 · Survivor ≥70 · Bitten ≥55 · Chum ≥40 · Eaten. **Survival:** a shark lets go at a vote ≥6; "Survived N of 5 sharks" on scorecard, share page and share image. | Shareable, honest summary of the five votes. |
+| S4 | **Hackathon themes, not events** (`lib/hackathons.ts`): Any / AI / Climate / Health / Fintech / Education, plus "My event" (URL optional, rules required). The URL is optional server-side. | The Linz default had expired; we don't invent events or their rules. |
+| S5 | **The saved verdict is created in the debate room** (`lib/client/judgment.ts`), not on the landing page. | The form navigates instantly; the save hides behind the waiting room. |
+| S6 | **Voice clip cache:** in-memory LRU (40 MB) keyed by model + voice + speaker + text; only misses count against the TTS limits. | Replays and reloads stop paying ElevenLabs again. Single instance, like the rate limits. |
+| S7 | **Hero entrances in CSS**, parallax desktop-only; scorecard and call view load as separate chunks (scorecard prefetched once the debate starts). | Lighthouse: the largest text waited for hydration on phones; phone parallax made the headline collide. |
+| S8 | **Share images** via `next/og`: landing card, per-verdict card (unshared ids get a plain card), icon, branded 404. `NEXT_PUBLIC_SITE_URL` sets absolute URLs. | The verdict link is the viral loop; it needs a real preview. |
+| S9 | **Honesty section + FAQ** (what it isn't, data flow to Google/ElevenLabs, free, no prediction claims); "Watch a demo debate" works with nothing typed. | Competitor scan: DimeADozen's "what we're not" builds trust; ValidatorAI's clutter and contradictory stats do the opposite. |

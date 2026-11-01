@@ -14,14 +14,16 @@ const PitchArt = (
       <div className="h-2 w-2/3 bg-ink/30" />
     </div>
     <div className="mt-4 ml-auto w-fit border-2 border-ink bg-coral px-2 py-1 font-mono text-[10px] font-bold uppercase shadow-[3px_3px_0_0_var(--blood)]">
-      Summon →
+      Throw it in →
     </div>
   </div>
 );
 
 const TableArt = (
   <div className="relative h-56 w-56">
-    <div className="bg-halftone absolute inset-8 rounded-full border-[3px] border-ink bg-mustard/60" />
+    <div className="absolute inset-8 overflow-hidden rounded-full border-[3px] border-ink bg-teal-deep">
+      <span aria-hidden className="tank-ripple absolute inset-[8%] rounded-full border-2 border-cream/40" />
+    </div>
     {JUDGE_ORDER.map((id, i) => {
       const angle = (i / JUDGE_ORDER.length) * Math.PI * 2 - Math.PI / 2;
       return (
@@ -44,7 +46,7 @@ const ScoreArt = (
       <p className="font-display text-8xl font-black leading-none">74</p>
     </div>
     <span className="absolute -right-10 -top-6 rotate-12 border-[3px] border-coral-deep px-2 py-1 font-display text-2xl font-black uppercase text-coral-deep">
-      Contender
+      Survivor
     </span>
   </div>
 );
@@ -60,29 +62,29 @@ const LoopArt = (
 const STEPS: StackItem[] = [
   {
     kicker: "Step 01",
-    title: "Pitch it",
-    body: "Write the idea like you'd say it to a teammate: what it does, who it's for, what the demo looks like.",
+    title: "Throw it in",
+    body: "Write the idea like you'd tell a teammate: what it does, who it's for, what the demo shows. Pick the kind of hackathon, or paste your event's real rules.",
     color: "var(--coral)",
     art: PitchArt,
   },
   {
     kicker: "Step 02",
-    title: "Hear the debate",
-    body: "Gemma 4 writes a real argument between a panel of six judges. ElevenLabs gives each one a voice. You watch it happen around the table.",
+    title: "Watch them circle",
+    body: "Gemma 4 writes a real argument between five sharks and the Tank Master, and ElevenLabs gives each one a voice. The first shark speaks within seconds.",
     color: "var(--mustard)",
     art: TableArt,
   },
   {
     kicker: "Step 03",
-    title: "Get the verdict",
-    body: "Five criteria, five personal votes, one weighted score out of 100 — plus the strengths to lean on and the risks to fix.",
+    title: "Count the bites",
+    body: "Which sharks it survived, eight criteria scored, the strength to lean on and the bite to fix first. Share the verdict with one link.",
     color: "var(--mint)",
     art: ScoreArt,
   },
   {
     kicker: "Step 04",
-    title: "Sharpen & retry",
-    body: "Take the hardest note, rewrite the pitch, and put it back on the table. Ideas get better under cross-examination.",
+    title: "Sharpen & go again",
+    body: "Fix the deepest bite, rewrite the pitch and throw it back in. Better to bleed here than on stage.",
     color: "var(--lilac)",
     art: LoopArt,
   },

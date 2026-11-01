@@ -2,7 +2,8 @@ import { JUDGES, type JudgeId } from "@/lib/judges";
 import { cn } from "@/lib/utils";
 
 // Brutalist portraits: a square paper head, square eyes, and one prop per judge
-// (wig, shark fin + shades, hard hat, beret, halo, headset). Drawn on a 64×64
+// (captain's cap, fin + shades, hard hat, beret, halo, headset). Every shark also
+// has a dorsal fin behind its shoulder; the Tank Master doesn't. Drawn on a 64×64
 // grid so they're centred by construction at any size.
 
 const INK = "var(--ink)";
@@ -30,17 +31,26 @@ function Head({ talking }: { talking: boolean }) {
   );
 }
 
+function BackFin() {
+  return (
+    <path
+      d="M38 56 C 45 49 49 39 53 27 C 53 39 55 49 61 56 Z"
+      fill="#5c6b70"
+      stroke={INK}
+      strokeWidth="3"
+      strokeLinejoin="round"
+    />
+  );
+}
+
 const PROPS: Record<JudgeId, React.ReactNode> = {
   chair: (
     <>
-      {/* barrister wig */}
-      <rect x="15" y="13" width="34" height="8" fill={PAPER} stroke={INK} strokeWidth="3" />
-      {[22, 30, 38, 46].map((y) => (
-        <g key={y}>
-          <circle cx="13" cy={y} r="4" fill={PAPER} stroke={INK} strokeWidth="2.5" />
-          <circle cx="51" cy={y} r="4" fill={PAPER} stroke={INK} strokeWidth="2.5" />
-        </g>
-      ))}
+      {/* captain's cap */}
+      <path d="M16 20 L19 8 L45 8 L48 20 Z" fill={PAPER} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+      <rect x="16" y="16" width="32" height="5" fill={INK} />
+      <path d="M13 21 L51 21 L46 26 L18 26 Z" fill={INK} />
+      <circle cx="32" cy="12.5" r="3" fill="var(--mustard)" stroke={INK} strokeWidth="1.5" />
     </>
   ),
   shark: (
@@ -112,6 +122,7 @@ export function JudgeAvatar({
       aria-label={JUDGES[id].name}
     >
       <svg viewBox="0 0 64 64" className="block h-full w-full">
+        {id !== "chair" && <BackFin />}
         <Head talking={talking} />
         {PROPS[id]}
       </svg>

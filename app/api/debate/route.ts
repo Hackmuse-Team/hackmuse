@@ -20,7 +20,8 @@ export async function POST(request: Request) {
     demo = body?.demo === true;
     const url = typeof body?.hackathonUrl === "string" ? body.hackathonUrl.trim() : "";
     const rules = typeof body?.rules === "string" ? body.rules.trim() : "";
-    if (url && rules) hackathon = { url: url.slice(0, 2000), rules };
+    // A theme preset has rules but no page, so the URL is optional.
+    if (rules) hackathon = { url: url.slice(0, 2000), rules };
   } catch {
     return Response.json({ error: "Body must be JSON: { idea: string }" }, { status: 400 });
   }

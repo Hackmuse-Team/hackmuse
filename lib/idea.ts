@@ -1,4 +1,5 @@
-import { sampleProject, type GemmaReview } from "@/server/gemma/prompt";
+import type { GemmaReview } from "@/server/gemma/prompt";
+import { CUSTOM_EVENT, PRESETS } from "./hackathons";
 import type { Debate } from "./types";
 
 export const MIN_IDEA = 12;
@@ -15,24 +16,26 @@ export const SAMPLE_IDEAS = [
   "Find a study buddy at your uni by matching your actual timetables",
 ];
 
-// Per-session persistence: the idea and its verdict live in sessionStorage only.
+// Per-tab draft state. The saved copy of a verdict lives in the database (see lib/server/db.ts).
+// v2: the eight-criterion rubric; verdicts cached under the old five-criterion shape are ignored.
 const IDEA_KEY = "hackmuse:idea";
-const DEBATE_KEY = "hackmuse:debate";
-const HACKATHON_KEY = "hackmuse:hackathon";
-const REVIEW_KEY = "hackmuse:review";
+const DEBATE_KEY = "hackmuse:debate:v2";
+const HACKATHON_KEY = "hackmuse:hackathon:v2";
+const REVIEW_KEY = "hackmuse:review:v2";
 // The saved verdict this session's debate and review fill in; absent when the database is off.
 const JUDGMENT_KEY = "hackmuse:judgment";
 
-/** Where the idea is pitched. Defaults to today's event so the demo needs one field. */
+/** Where the idea is pitched: a theme preset (no page) or the person's own event. */
 export interface Hackathon {
+  /** A preset id from lib/hackathons.ts, or "custom". */
+  preset: string;
   hackathonUrl: string;
   rules: string;
 }
 
-export const DEFAULT_HACKATHON: Hackathon = {
-  hackathonUrl: sampleProject.hackathonUrl,
-  rules: sampleProject.hackathonRules,
-};
+export const DEFAULT_HACKATHON: Hackathon = { preset: PRESETS[0].id, hackathonUrl: "", rules: PRESETS[0].rules };
+
+export { CUSTOM_EVENT };
 
 export const MAX_RULES = 20_000;
 
@@ -64,7 +67,9 @@ export function loadHackathon(): Hackathon {
   try {
     const raw = storage()?.getItem(HACKATHON_KEY);
     const value = raw ? (JSON.parse(raw) as Partial<Hackathon>) : null;
-    if (value?.hackathonUrl && value?.rules) return { hackathonUrl: value.hackathonUrl, rules: value.rules };
+    if (value?.rules) {
+      return { preset: value.preset ?? CUSTOM_EVENT, hackathonUrl: value.hackathonUrl ?? "", rules: value.rules };
+    }
   } catch {
     /* fall through to the default */
   }

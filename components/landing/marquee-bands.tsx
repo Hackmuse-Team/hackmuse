@@ -21,7 +21,7 @@ export function MarqueeBands() {
         <ScrollTextMarquee baseVelocity={2.2} className="font-mono text-xl font-bold uppercase tracking-[0.2em] sm:text-2xl">
           {RUBRIC.map((c) => (
             <span key={c.id} className="mr-8 inline-flex items-center gap-8">
-              {c.label} · {Math.round(c.weight * 100)}%
+              {c.label}
               <span>◆</span>
             </span>
           ))}

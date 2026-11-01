@@ -8,24 +8,33 @@ import { Logo } from "@/components/landing/site-header";
 import { BrutalButton, BrutalLink } from "@/components/ui/brutal-button";
 import { RandomizedText } from "@/components/ui/randomized-text";
 import { DebateEngine, IDLE_SNAPSHOT, type PlayerSnapshot } from "@/lib/client/debate-engine";
+import { ensureJudgment } from "@/lib/client/judgment";
 import {
+  DEFAULT_HACKATHON,
+  SAMPLE_IDEAS,
   loadDebate,
   loadHackathon,
   loadIdea,
   loadJudgmentId,
   loadReview,
   saveDebate,
+  saveIdea,
   saveReview,
 } from "@/lib/idea";
 import { DEBATE_LENGTH, type JudgeId } from "@/lib/judges";
 import { fetchReview, reviewOverall, type ReviewState } from "@/lib/review";
 import type { Debate, StreamEvent } from "@/lib/types";
-import { CallView } from "./call-view";
+import dynamic from "next/dynamic";
 import { Caption } from "./caption";
 import { GroupChat } from "./group-chat";
 import { Roundtable } from "./roundtable";
-import { Scorecard } from "./scorecard";
 import { Transcript } from "./transcript";
+
+// Shown only after the debate (scorecard) or on demand (call view), so they load in their own
+// chunks. The scorecard chunk is fetched as soon as the debate starts; see the effect below.
+const loadScorecard = () => import("./scorecard");
+const Scorecard = dynamic(() => loadScorecard().then((m) => m.Scorecard), { ssr: false });
+const CallView = dynamic(() => import("./call-view").then((m) => m.CallView), { ssr: false });
 
 interface Session {
   idea: string;
@@ -82,7 +91,9 @@ export function DebateRoom() {
     reviewAbortRef.current = ctrl;
     setReview({ status: "loading" });
     try {
-      const result = await fetchReview({ idea, judgmentId: loadJudgmentId(), ...loadHackathon() }, ctrl.signal);
+      const judgmentId = await ensureJudgment(idea);
+      const { hackathonUrl, rules } = loadHackathon();
+      const result = await fetchReview({ idea, judgmentId, hackathonUrl, rules }, ctrl.signal);
       if (ctrl.signal.aborted) return;
       saveReview(idea, result);
       setReview({ status: "ready", review: result });
@@ -105,10 +116,13 @@ export function DebateRoom() {
     setSession({ idea, engine, fromCache: false, title: null, source: null, model: null, debate: null, error: null });
 
     try {
+      // Demo debates are never saved, so they need no saved verdict to fill in.
+      const judgmentId = demo ? null : await ensureJudgment(idea);
+      const { hackathonUrl, rules } = loadHackathon();
       const res = await fetch("/api/debate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea, demo, judgmentId: loadJudgmentId(), ...loadHackathon() }),
+        body: JSON.stringify({ idea, demo, judgmentId, hackathonUrl, rules }),
         signal: ctrl.signal,
       });
       if (!res.ok) {
@@ -136,7 +150,13 @@ export function DebateRoom() {
 
   // Boot: read this session's idea; reuse the verdict if this tab already has it.
   useEffect(() => {
-    const idea = loadIdea();
+    const params = new URLSearchParams(window.location.search);
+    let idea = loadIdea();
+    if (!idea && params.has("demo")) {
+      // "Watch a demo" from the landing page: no idea typed yet, so use a sample one.
+      idea = SAMPLE_IDEAS[0];
+      saveIdea(idea, DEFAULT_HACKATHON);
+    }
     if (!idea) {
       router.replace("/#pitch");
       return;
@@ -157,11 +177,11 @@ export function DebateRoom() {
       });
     } else {
       // ?demo=1 plays the scripted debate (no API calls) — handy for UI demos.
-      void requestDebate(idea, new URLSearchParams(window.location.search).has("demo"));
+      void requestDebate(idea, params.has("demo"));
     }
     const cachedReview = loadReview(idea);
     if (cachedReview) setReview({ status: "ready", review: cachedReview });
-    else if (!new URLSearchParams(window.location.search).has("demo")) void requestReview(idea);
+    else if (!params.has("demo")) void requestReview(idea);
     return () => {
       abortRef.current?.abort();
       reviewAbortRef.current?.abort();
@@ -194,7 +214,12 @@ export function DebateRoom() {
   const started = fromCache || (assembled && lines.length > 0);
   const deliberating = !session || (!started && !session.error);
   const total = snap.complete ? lines.length : Math.max(DEBATE_LENGTH, lines.length);
-  const caseNo = session ? String(hashIdea(session.idea) % 10000).padStart(4, "0") : "0000";
+  const tankNo = session ? String(hashIdea(session.idea) % 10000).padStart(4, "0") : "0000";
+
+  // Warm the scorecard chunk while the sharks talk, so the verdict appears without a pause.
+  useEffect(() => {
+    if (started) void loadScorecard();
+  }, [started]);
 
   // Glide down to the scorecard when the Chair finishes.
   useEffect(() => {
@@ -227,7 +252,7 @@ export function DebateRoom() {
       ? "Gemma is writing the next argument…"
       : snap.index >= lines.length && snap.complete
         ? "The panel has spoken."
-        : "The panel is taking its seats…";
+        : "The sharks are circling…";
 
   return (
     <>
@@ -255,7 +280,7 @@ export function DebateRoom() {
       <main className="relative flex-1 overflow-hidden">
         <div className="bg-grid pointer-events-none absolute inset-0" />
         <div className="relative mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6">
-          {/* Docket */}
+          {/* The idea in the tank */}
           <div className="mb-8 flex flex-col gap-3 border-[3px] border-ink bg-paper p-4 shadow-brutal-sm sm:flex-row sm:items-center">
             <span className="shrink-0 border-2 border-ink bg-ink px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream">
               The idea
@@ -306,7 +331,7 @@ export function DebateRoom() {
               {session && deliberating && (
                 <GroupChat
                   key={chatKey}
-                  caseNo={caseNo}
+                  tankNo={tankNo}
                   waiting={lines.length === 0}
                   onJoin={(id) => setPresent((p) => (p.includes(id) ? p : [...p, id]))}
                   onAssembled={() => setAssembled(true)}
@@ -315,7 +340,7 @@ export function DebateRoom() {
 
               {session?.error && (
                 <div role="alert" className="border-[3px] border-ink bg-coral p-5 shadow-brutal">
-                  <p className="font-mono text-xs font-bold uppercase tracking-[0.25em]">Mistrial</p>
+                  <p className="font-mono text-xs font-bold uppercase tracking-[0.25em]">The sharks swam off</p>
                   <h1 className="mt-1 font-display text-5xl font-black uppercase leading-[0.9]">No verdict</h1>
                   <p className="mt-3 text-base">{session.error}</p>
                   <div className="mt-5 flex flex-wrap gap-3">
@@ -442,7 +467,7 @@ function Controls({ engine, snap, total }: { engine: DebateEngine; snap: PlayerS
           </BrutalButton>
         )}
       </div>
-      <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-ink/50">Space · ← → · M</p>
+      <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-ink/65">Space · ← → · M</p>
     </div>
   );
 }

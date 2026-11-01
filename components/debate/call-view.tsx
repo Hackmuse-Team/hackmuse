@@ -223,7 +223,7 @@ export function CallView({
                     </motion.div>
                     {/* desk */}
                     <div className="absolute inset-x-0 bottom-0 h-[16%] border-t-[4px] border-ink bg-teal-deep">
-                      <div className="bg-hatch h-2 w-full text-ink/60" />
+                      <div className="bg-hatch h-2 w-full text-ink/70" />
                     </div>
                     {/* name plate */}
                     <div className="absolute bottom-[19%] left-4 border-[3px] border-ink bg-paper px-3 py-1.5 text-ink shadow-[4px_4px_0_0_var(--blood)]">

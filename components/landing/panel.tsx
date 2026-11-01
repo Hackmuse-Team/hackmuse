@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { JudgeAvatar } from "@/components/judge-avatar";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { TextAnimation } from "@/components/ui/text-animation";
-import { JUDGES, JUDGE_ORDER, type Judge } from "@/lib/judges";
+import { JUDGES, JUDGE_ORDER, VOTING_JUDGES, type Judge } from "@/lib/judges";
 import { RUBRIC } from "@/lib/rubric";
 
 const NUMBER_WORDS: Record<number, string> = { 3: "Three", 4: "Four", 5: "Five", 6: "Six", 7: "Seven", 8: "Eight" };
@@ -56,12 +56,19 @@ function JudgeCard({ judge, index }: { judge: Judge; index: number }) {
               className="w-20 border-[3px] bg-paper! transition-transform duration-300 group-hover:-rotate-6"
             />
             <span className="border-2 border-ink bg-paper px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest">
-              Seat 0{index + 1}
+              {judge.id === "chair" ? "Host" : `Shark 0${index}`}
             </span>
           </div>
           <div className="flex flex-1 flex-col p-5">
-            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink/60">{judge.role}</p>
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ink/70">{judge.role}</p>
             <h3 className="font-display text-4xl font-black uppercase leading-none">{judge.name}</h3>
+            <p className="mt-3 border-l-[5px] border-ink/80 pl-3 text-sm leading-snug">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-ink/70">
+                {judge.id === "chair" ? "Job" : "Eats"}
+              </span>
+              <br />
+              {judge.kills}
+            </p>
             <p className="mt-4 flex-1 text-lg font-medium leading-snug">&ldquo;{judge.catchphrase}&rdquo;</p>
             <div className="mt-5 flex flex-wrap gap-1.5">
               {(owns.length ? owns : [judge.focus]).map((o) => (
@@ -70,7 +77,7 @@ function JudgeCard({ judge, index }: { judge: Judge; index: number }) {
                 </span>
               ))}
             </div>
-            <p className="mt-4 border-t-2 border-dashed border-ink/30 pt-3 font-mono text-[10px] uppercase tracking-wider text-ink/60">
+            <p className="mt-4 border-t-2 border-dashed border-ink/30 pt-3 font-mono text-[10px] uppercase tracking-wider text-ink/70">
               Voice · {judge.voiceName} / ElevenLabs
             </p>
           </div>
@@ -86,15 +93,16 @@ export function Panel() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="font-mono text-xs font-bold uppercase tracking-[0.3em]">The panel</p>
+            <p className="font-mono text-xs font-bold uppercase tracking-[0.3em]">Who&apos;s in the tank</p>
             <TextAnimation
               as="h2"
-              text={`${NUMBER_WORDS[JUDGE_ORDER.length] ?? JUDGE_ORDER.length} seats. ${NUMBER_WORDS[JUDGE_ORDER.length] ?? JUDGE_ORDER.length} agendas.`}
+              text={`${NUMBER_WORDS[VOTING_JUDGES.length] ?? VOTING_JUDGES.length} sharks. One Tank Master.`}
               className="mt-2 font-display text-6xl font-black uppercase leading-[0.9] sm:text-8xl"
             />
           </div>
           <p className="max-w-sm text-base leading-relaxed text-ink/80">
-            Each judge owns part of the rubric and has a voice of their own. They don&apos;t agree, and that&apos;s the point.
+            Each shark hunts for one way ideas die, watches its own criteria and speaks in its own voice. They don&apos;t agree,
+            and that&apos;s the point: an idea that survives all five is hard to kill on stage.
           </p>
         </div>
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

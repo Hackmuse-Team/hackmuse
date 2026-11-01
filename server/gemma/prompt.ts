@@ -1,13 +1,7 @@
-export const gemmaCriteria = [
-  { id: "originality", label: "Originality" },
-  { id: "winner_pattern_fit", label: "Winner pattern" },
-  { id: "hackathon_fit", label: "Hackathon fit" },
-  { id: "feasibility", label: "Feasibility" },
-  { id: "impact", label: "Impact" },
-  { id: "technical_innovation", label: "Technical innovation" },
-  { id: "demo_potential", label: "Demo potential" },
-  { id: "concept_clarity", label: "Concept clarity" },
-] as const;
+import { RUBRIC } from "../../lib/rubric.ts";
+
+// Same criteria as the debate panel (lib/rubric.ts), scored 0–100 here.
+export const gemmaCriteria = RUBRIC.map(({ id, label }) => ({ id, label }));
 
 export type GemmaProjectInput = {
   projectIdea: string;
