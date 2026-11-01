@@ -2,22 +2,37 @@
 
 import { useLenis } from "lenis/react";
 import { AnimatePresence, motion } from "motion/react";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/landing/site-header";
 import { BrutalButton, BrutalLink } from "@/components/ui/brutal-button";
 import { RandomizedText } from "@/components/ui/randomized-text";
 import { DebateEngine, IDLE_SNAPSHOT, type PlayerSnapshot } from "@/lib/client/debate-engine";
-import { loadDebate, loadHackathon, loadIdea, loadReview, saveDebate, saveReview } from "@/lib/idea";
+import { ensureJudgment } from "@/lib/client/judgment";
+import {
+  isDemoSession,
+  loadDebate,
+  loadHackathon,
+  loadIdea,
+  loadJudgmentId,
+  loadReview,
+  saveDebate,
+  saveReview,
+  startDemoSession,
+} from "@/lib/idea";
 import { DEBATE_LENGTH, type JudgeId } from "@/lib/judges";
 import { fetchReview, reviewOverall, type ReviewState } from "@/lib/review";
 import type { Debate, StreamEvent } from "@/lib/types";
-import { CallView } from "./call-view";
+import dynamic from "next/dynamic";
 import { Caption } from "./caption";
 import { GroupChat } from "./group-chat";
 import { Roundtable } from "./roundtable";
-import { Scorecard } from "./scorecard";
 import { Transcript } from "./transcript";
+
+// Shown only after the debate (scorecard) or on demand (call view), so they load in their own
+// chunks. The scorecard chunk is fetched as soon as the debate starts; see the effect below.
+const loadScorecard = () => import("./scorecard");
+const Scorecard = dynamic(() => loadScorecard().then((m) => m.Scorecard), { ssr: false });
+const CallView = dynamic(() => import("./call-view").then((m) => m.CallView), { ssr: false });
 
 interface Session {
   idea: string;
@@ -54,7 +69,6 @@ async function readEvents(res: Response, onEvent: (e: StreamEvent) => void) {
 }
 
 export function DebateRoom() {
-  const router = useRouter();
   const lenis = useLenis();
   const [session, setSession] = useState<Session | null>(null);
   // Waiting room: who has joined the group chat, and whether everyone is in.
@@ -62,6 +76,8 @@ export function DebateRoom() {
   const [assembled, setAssembled] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const [chatKey, setChatKey] = useState(0);
+  // True when this tab has no idea to judge (a link opened in a fresh tab, say).
+  const [empty, setEmpty] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const reviewAbortRef = useRef<AbortController | null>(null);
   // Gemma + Google Search review (the teammate backend). Runs in parallel with the
@@ -74,7 +90,9 @@ export function DebateRoom() {
     reviewAbortRef.current = ctrl;
     setReview({ status: "loading" });
     try {
-      const result = await fetchReview({ idea, ...loadHackathon() }, ctrl.signal);
+      const judgmentId = await ensureJudgment(idea);
+      const { hackathonUrl, rules } = loadHackathon();
+      const result = await fetchReview({ idea, judgmentId, hackathonUrl, rules }, ctrl.signal);
       if (ctrl.signal.aborted) return;
       saveReview(idea, result);
       setReview({ status: "ready", review: result });
@@ -97,10 +115,13 @@ export function DebateRoom() {
     setSession({ idea, engine, fromCache: false, title: null, source: null, model: null, debate: null, error: null });
 
     try {
+      // Demo debates are never saved, so they need no saved verdict to fill in.
+      const judgmentId = demo ? null : await ensureJudgment(idea);
+      const { hackathonUrl, rules } = loadHackathon();
       const res = await fetch("/api/debate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea, demo, ...loadHackathon() }),
+        body: JSON.stringify({ idea, demo, judgmentId, hackathonUrl, rules }),
         signal: ctrl.signal,
       });
       if (!res.ok) {
@@ -126,17 +147,19 @@ export function DebateRoom() {
     }
   }, []);
 
-  // Boot: read this session's idea; reuse the verdict if this tab already has it.
-  useEffect(() => {
-    const idea = loadIdea();
+  // Boot: read this tab's idea and reuse its verdict if it already has one. With no idea there is
+  // nothing to judge, so we offer the demo instead of bouncing the visitor home.
+  const begin = useCallback(() => {
+    const demo = new URLSearchParams(window.location.search).has("demo") || isDemoSession();
+    let idea = loadIdea();
+    if (!idea && demo) idea = startDemoSession();
     if (!idea) {
-      router.replace("/#pitch");
+      setEmpty(true);
       return;
     }
+    setEmpty(false);
     const cached = loadDebate(idea);
     if (cached) {
-      // sessionStorage is only readable after mount.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSession({
         idea,
         engine: new DebateEngine(cached.lines, true),
@@ -148,17 +171,23 @@ export function DebateRoom() {
         error: null,
       });
     } else {
-      // ?demo=1 plays the scripted debate (no API calls) — handy for UI demos.
-      void requestDebate(idea, new URLSearchParams(window.location.search).has("demo"));
+      // The demo plays the scripted debate: no API calls, nothing saved.
+      void requestDebate(idea, demo);
     }
     const cachedReview = loadReview(idea);
     if (cachedReview) setReview({ status: "ready", review: cachedReview });
-    else if (!new URLSearchParams(window.location.search).has("demo")) void requestReview(idea);
+    else if (!demo) void requestReview(idea);
+  }, [requestDebate, requestReview]);
+
+  useEffect(() => {
+    // sessionStorage is only readable after mount, so state has to be set from here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    begin();
     return () => {
       abortRef.current?.abort();
       reviewAbortRef.current?.abort();
     };
-  }, [router, requestDebate, requestReview]);
+  }, [begin]);
 
   const engine = session?.engine ?? null;
   const fromCache = session?.fromCache ?? false;
@@ -186,7 +215,12 @@ export function DebateRoom() {
   const started = fromCache || (assembled && lines.length > 0);
   const deliberating = !session || (!started && !session.error);
   const total = snap.complete ? lines.length : Math.max(DEBATE_LENGTH, lines.length);
-  const caseNo = session ? String(hashIdea(session.idea) % 10000).padStart(4, "0") : "0000";
+  const tankNo = session ? String(hashIdea(session.idea) % 10000).padStart(4, "0") : "0000";
+
+  // Warm the scorecard chunk while the sharks talk, so the verdict appears without a pause.
+  useEffect(() => {
+    if (started) void loadScorecard();
+  }, [started]);
 
   // Glide down to the scorecard when the Chair finishes.
   useEffect(() => {
@@ -219,7 +253,47 @@ export function DebateRoom() {
       ? "Gemma is writing the next argument…"
       : snap.index >= lines.length && snap.complete
         ? "The panel has spoken."
-        : "The panel is taking its seats…";
+        : "The sharks are circling…";
+
+  if (empty) {
+    return (
+      <>
+        <header className="border-b-[3px] border-ink bg-teal text-cream">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+            <Logo className="[&>span:last-child]:text-cream" />
+          </div>
+        </header>
+        <main className="relative flex-1">
+          <div className="bg-grid pointer-events-none absolute inset-0" />
+          <div className="relative mx-auto max-w-2xl px-4 py-20 sm:px-6">
+            <div className="border-[3px] border-ink bg-paper p-6 shadow-brutal sm:p-8">
+              <p className="font-mono text-xs font-bold uppercase tracking-[0.3em]">Nothing in the tank yet</p>
+              <h1 className="mt-2 font-display text-5xl font-black uppercase leading-[0.9] sm:text-6xl">No idea to judge.</h1>
+              <p className="mt-4 text-base leading-relaxed text-ink/80">
+                Ideas live in the tab you pitched them from, so a new tab or a reopened link starts empty. Pitch a new one, or
+                watch the sharks take on a sample idea.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <BrutalLink href="/#pitch" cursor="pitch">
+                  Pitch the sharks →
+                </BrutalLink>
+                <BrutalButton
+                  tone="paper"
+                  cursor="watch"
+                  onClick={() => {
+                    startDemoSession();
+                    begin();
+                  }}
+                >
+                  ▶ Watch a demo debate
+                </BrutalButton>
+              </div>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -247,7 +321,7 @@ export function DebateRoom() {
       <main className="relative flex-1 overflow-hidden">
         <div className="bg-grid pointer-events-none absolute inset-0" />
         <div className="relative mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6">
-          {/* Docket */}
+          {/* The idea in the tank */}
           <div className="mb-8 flex flex-col gap-3 border-[3px] border-ink bg-paper p-4 shadow-brutal-sm sm:flex-row sm:items-center">
             <span className="shrink-0 border-2 border-ink bg-ink px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream">
               The idea
@@ -298,7 +372,7 @@ export function DebateRoom() {
               {session && deliberating && (
                 <GroupChat
                   key={chatKey}
-                  caseNo={caseNo}
+                  tankNo={tankNo}
                   waiting={lines.length === 0}
                   onJoin={(id) => setPresent((p) => (p.includes(id) ? p : [...p, id]))}
                   onAssembled={() => setAssembled(true)}
@@ -307,7 +381,7 @@ export function DebateRoom() {
 
               {session?.error && (
                 <div role="alert" className="border-[3px] border-ink bg-coral p-5 shadow-brutal">
-                  <p className="font-mono text-xs font-bold uppercase tracking-[0.25em]">Mistrial</p>
+                  <p className="font-mono text-xs font-bold uppercase tracking-[0.25em]">The sharks swam off</p>
                   <h1 className="mt-1 font-display text-5xl font-black uppercase leading-[0.9]">No verdict</h1>
                   <p className="mt-3 text-base">{session.error}</p>
                   <div className="mt-5 flex flex-wrap gap-3">
@@ -338,6 +412,7 @@ export function DebateRoom() {
               <Scorecard
                 debate={debate}
                 review={review}
+                judgmentId={session?.source === "gemma" ? loadJudgmentId() : null}
                 onRetryReview={session ? () => requestReview(session.idea) : undefined}
                 onReplay={() => {
                   engine?.jumpTo(0);
@@ -433,7 +508,7 @@ function Controls({ engine, snap, total }: { engine: DebateEngine; snap: PlayerS
           </BrutalButton>
         )}
       </div>
-      <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-ink/50">Space · ← → · M</p>
+      <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-ink/65">Space · ← → · M</p>
     </div>
   );
 }

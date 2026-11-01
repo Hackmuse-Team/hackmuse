@@ -5,8 +5,8 @@ import { motion, useAnimationControls, useInView } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { JudgeAvatar } from "@/components/judge-avatar";
 import { BrutalButton, BrutalLink } from "@/components/ui/brutal-button";
-import { JUDGES, VOTING_JUDGES } from "@/lib/judges";
-import { RUBRIC, gradeFor } from "@/lib/rubric";
+import { JUDGES, JUDGE_ORDER, VOTING_JUDGES } from "@/lib/judges";
+import { RUBRIC, SURVIVE_AT, gradeFor, survival } from "@/lib/rubric";
 import type { GemmaReview, ReviewState } from "@/lib/review";
 import type { Debate } from "@/lib/types";
 
@@ -14,9 +14,9 @@ function summary(d: Debate, review: GemmaReview | null) {
   const grade = gradeFor(d.overall);
   const criteria = review
     ? review.criteria.map((c) => `• ${c.label}: ${c.score ?? "—"}/100 — ${c.explanation}`)
-    : RUBRIC.map((c) => `• ${c.label}: ${d.scores[c.id].score}/10 — ${d.scores[c.id].note}`);
+    : RUBRIC.map((c) => `• ${c.label}: ${d.scores[c.id]?.score ?? "—"}/10 — ${d.scores[c.id]?.note ?? ""}`);
   return [
-    `HACKMUSE verdict — "${d.title}": ${d.overall}/100 (${grade.label})`,
+    `HACKMUSE verdict — "${d.title}": ${d.overall}/100 (${grade.label}). ${survival(d.votes).line}.`,
     ...criteria,
     ...(review?.similarProjects.length
       ? [`Similar projects: ${review.similarProjects.map((p) => (p.url ? `${p.name} (${p.url})` : p.name)).join("; ")}`]
@@ -32,12 +32,15 @@ function summary(d: Debate, review: GemmaReview | null) {
 export function Scorecard({
   debate,
   review,
+  judgmentId,
   onRetryReview,
   onReplay,
   onJoinCall,
 }: {
   debate: Debate;
   review: ReviewState | null;
+  /** The saved verdict this scorecard belongs to; the Share button only shows when there is one. */
+  judgmentId?: string | null;
   onRetryReview?: () => void;
   onReplay: () => void;
   onJoinCall: () => void;
@@ -48,7 +51,24 @@ export function Scorecard({
   const shake = useAnimationControls();
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [share, setShare] = useState<{ status: "idle" | "busy" | "failed"; url?: string }>({ status: "idle" });
   const grade = gradeFor(debate.overall);
+  const survived = survival(debate.votes);
+
+  async function shareVerdict() {
+    if (!judgmentId) return;
+    setShare({ status: "busy" });
+    try {
+      const res = await fetch(`/api/judgments/${judgmentId}/share`, { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || typeof data?.path !== "string") throw new Error(data?.error?.message ?? "share failed");
+      const url = `${window.location.origin}${data.path}`;
+      await navigator.clipboard.writeText(url).catch(() => {});
+      setShare({ status: "idle", url });
+    } catch {
+      setShare({ status: "failed" });
+    }
+  }
 
   useEffect(() => {
     if (!inView) return;
@@ -81,7 +101,7 @@ export function Scorecard({
           <div className="bg-grid absolute inset-0 opacity-60" />
           <div className="relative">
             <p className="font-mono text-xs font-bold uppercase tracking-[0.25em]">
-              {ready ? "Overall · research-backed review" : review?.status === "loading" ? "Panel estimate · review pending" : "Overall · weighted"}
+              {ready ? "Overall · research-backed review" : review?.status === "loading" ? "Panel estimate · review pending" : "Overall · panel estimate"}
             </p>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="font-display text-[clamp(7rem,18vw,11rem)] font-black leading-none tabular-nums">
@@ -98,31 +118,42 @@ export function Scorecard({
             >
               <div className="border-[5px] border-double border-coral-deep bg-paper/70 px-4 py-2 text-center text-coral-deep [filter:url(#stamp-rough)]">
                 <p className="font-display text-4xl font-black uppercase leading-none sm:text-5xl">{grade.label}</p>
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">Hackmuse panel</p>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">Hackmuse tank</p>
               </div>
             </motion.div>
 
             <p className="mt-6 font-display text-2xl font-black uppercase">{grade.blurb}</p>
             <blockquote className="mt-4 border-l-[6px] border-mustard bg-cream p-4 text-lg font-medium leading-snug">
               &ldquo;{debate.verdict}&rdquo;
-              <footer className="mt-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink/60">— The Chair</footer>
+              <footer className="mt-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink/70">— The Tank Master</footer>
             </blockquote>
 
-            <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {VOTING_JUDGES.map((id, i) => (
-                <motion.div
-                  key={id}
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={shown ? { y: 0, opacity: 1 } : {}}
-                  transition={{ delay: 1.8 + i * 0.12 }}
-                  className="flex flex-col items-center border-[3px] border-ink p-1.5 text-center"
-                  style={{ backgroundColor: JUDGES[id].color }}
-                >
-                  <JudgeAvatar id={id} className="w-10 bg-paper!" />
-                  <p className="mt-1 font-display text-3xl font-black leading-none tabular-nums">{debate.votes[id]}</p>
-                  <p className="font-mono text-[8px] font-bold uppercase tracking-wider">{JUDGES[id].short}</p>
-                </motion.div>
-              ))}
+            <p className="mt-6 font-mono text-[11px] font-bold uppercase tracking-[0.2em]">
+              {survived.line} <span className="text-ink/65">· a shark lets go at {SURVIVE_AT}/10</span>
+            </p>
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {VOTING_JUDGES.map((id, i) => {
+                const letGo = survived.survived.includes(id);
+                return (
+                  <motion.div
+                    key={id}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={shown ? { y: 0, opacity: 1 } : {}}
+                    transition={{ delay: 1.8 + i * 0.12 }}
+                    className="relative flex flex-col items-center border-[3px] border-ink p-1.5 text-center"
+                    style={{ backgroundColor: letGo ? JUDGES[id].color : "var(--paper)" }}
+                  >
+                    <JudgeAvatar id={id} className="w-10 bg-paper!" />
+                    <p className="mt-1 font-display text-3xl font-black leading-none tabular-nums">{debate.votes[id]}</p>
+                    <p className="font-mono text-[8px] font-bold uppercase tracking-wider">{JUDGES[id].short}</p>
+                    <span
+                      className={`mt-1 w-full border-t-2 border-ink pt-0.5 font-mono text-[8px] font-bold uppercase tracking-widest ${letGo ? "" : "text-coral-deep"}`}
+                    >
+                      {letGo ? "Let go" : "Bit"}
+                    </span>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -139,8 +170,8 @@ export function Scorecard({
             </div>
             <ul className="divide-y-2 divide-dashed divide-ink/25">
               {RUBRIC.map((c, i) => {
-                const s = debate.scores[c.id];
-                const owner = VOTING_JUDGES.map((id) => JUDGES[id]).find((j) => j.owns.includes(c.id));
+                const s = debate.scores[c.id] ?? { score: 0, note: "" };
+                const owner = JUDGE_ORDER.map((id) => JUDGES[id]).find((j) => j.owns.includes(c.id));
                 return (
                   <li key={c.id} className="p-4">
                     <div className="flex items-center justify-between gap-3">
@@ -149,7 +180,6 @@ export function Scorecard({
                           <JudgeAvatar id={owner.id} className="w-7" />
                         )}
                         <span className="font-display text-2xl font-black uppercase leading-none">{c.label}</span>
-                        <span className="font-mono text-[10px] text-ink/50">×{Math.round(c.weight * 100)}%</span>
                       </div>
                       <span className="font-display text-3xl font-black tabular-nums">
                         <NumberFlow value={shown ? s.score : 0} />
@@ -231,7 +261,28 @@ export function Scorecard({
         >
           {copied ? "Copied ✓" : "Copy verdict"}
         </BrutalButton>
+        {judgmentId && (
+          <BrutalButton size="lg" cursor="share" disabled={share.status === "busy"} onClick={shareVerdict}>
+            {share.status === "busy" ? "Making the link…" : "Share verdict"}
+          </BrutalButton>
+        )}
       </div>
+      {judgmentId && (
+        <p role="status" className="mt-3 max-w-2xl text-sm leading-snug text-ink/70">
+          {share.url ? (
+            <>
+              Link copied. Anyone with it can read your idea and this verdict:{" "}
+              <a href={share.url} target="_blank" rel="noreferrer" data-cursor="open" className="font-bold underline underline-offset-2">
+                {share.url}
+              </a>
+            </>
+          ) : share.status === "failed" ? (
+            "Couldn't make the link. Try again in a moment."
+          ) : (
+            "Sharing makes your idea and this verdict readable by anyone with the link."
+          )}
+        </p>
+      )}
 
       {/* Roughens the stamp edges like real ink. */}
       <svg width="0" height="0" className="absolute" aria-hidden>
@@ -305,7 +356,7 @@ function ReviewCriteria({ review, shown }: { review: GemmaReview; shown: boolean
             {c.explanation && <p className="mt-2 text-sm leading-snug text-ink/75">{c.explanation}</p>}
             {(c.strengths.length > 0 || c.weaknesses.length > 0 || c.recommendations.length > 0) && (
               <details className="mt-2 text-sm">
-                <summary data-cursor="open" className="cursor-pointer font-mono text-[11px] font-bold uppercase tracking-wider text-ink/60">
+                <summary data-cursor="open" className="cursor-pointer font-mono text-[11px] font-bold uppercase tracking-wider text-ink/70">
                   Details
                 </summary>
                 <dl className="mt-2 space-y-2 leading-snug">
@@ -365,7 +416,7 @@ function SimilarProjects({ review }: { review: GemmaReview }) {
         )}
         {review.sources.length > 0 && (
           <div>
-            <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-ink/60">Search sources</p>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-ink/70">Search sources</p>
             <ul className="mt-1 flex flex-wrap gap-2">
               {review.sources.slice(0, 8).map((s) => (
                 <li key={s.uri}>

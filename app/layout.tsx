@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Inter, Space_Mono } from "next/font/google";
+import { Suspense } from "react";
 import { Cursor } from "@/components/effects/cursor";
 import { Noise } from "@/components/effects/noise";
 import { SmoothScroll } from "@/components/effects/smooth-scroll";
@@ -24,9 +25,22 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HACKMUSE — put your hackathon idea on trial",
+  // Absolute URLs for share images and canonical links; set NEXT_PUBLIC_SITE_URL in production.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  title: "HACKMUSE — throw your hackathon idea to the sharks",
   description:
-    "Pitch your hackathon idea. A panel of AI judges debates it out loud and hands you a score.",
+    "Five AI sharks argue about your hackathon idea out loud, then tell you which ones it survived and what to fix before the judges see it. Free.",
+  openGraph: {
+    type: "website",
+    siteName: "HACKMUSE",
+    title: "Throw your hackathon idea to the sharks",
+    description: "Five AI sharks argue about it out loud and tell you what to fix before the judges see it.",
+  },
+  twitter: { card: "summary_large_image" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#3d5e56",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -38,7 +52,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <SmoothScroll>{children}</SmoothScroll>
         <Noise />
-        <Cursor />
+        {/* Reads the URL, which a dynamic route like /v/[id] only knows at request time. */}
+        <Suspense fallback={null}>
+          <Cursor />
+        </Suspense>
       </body>
     </html>
   );

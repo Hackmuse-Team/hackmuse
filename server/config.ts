@@ -55,5 +55,16 @@ export function rateRules() {
       windowMs: 60 * 60_000,
       daily: positiveIntFromEnv("LIMIT_REVIEW_DAILY", 200),
     },
+    // Rows written to the database: new ideas and shares.
+    writes: {
+      perVisitor: positiveIntFromEnv("LIMIT_WRITES_PER_VISITOR", 30),
+      windowMs: 60 * 60_000,
+      daily: positiveIntFromEnv("LIMIT_WRITES_DAILY", 3_000),
+    },
+    waitlist: {
+      perVisitor: positiveIntFromEnv("LIMIT_WAITLIST_PER_VISITOR", 5),
+      windowMs: 60 * 60_000,
+      daily: positiveIntFromEnv("LIMIT_WAITLIST_DAILY", 500),
+    },
   } as const;
 }

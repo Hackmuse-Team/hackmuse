@@ -2,9 +2,10 @@ import Link from "next/link";
 import { BrutalLink } from "@/components/ui/brutal-button";
 
 const NAV = [
-  { href: "/#panel", label: "The panel" },
+  { href: "/#panel", label: "The sharks" },
   { href: "/#how", label: "How it works" },
-  { href: "/#rubric", label: "Rubric" },
+  { href: "/#rubric", label: "Scoring" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 export function Logo({ className = "" }: { className?: string }) {
@@ -40,10 +41,10 @@ export function SiteHeader() {
         </nav>
         <div className="flex items-center gap-3">
           <span className="hidden items-center gap-2 border-2 border-cream/40 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-widest lg:inline-flex">
-            <span className="h-2 w-2 animate-blink bg-coral" /> Panel in session
+            <span className="h-2 w-2 animate-blink bg-coral" /> Tank is open
           </span>
           <BrutalLink href="/#pitch" size="sm" cursor="pitch">
-            Grade my idea
+            Pitch the sharks
           </BrutalLink>
         </div>
       </div>

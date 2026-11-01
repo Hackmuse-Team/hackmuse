@@ -14,7 +14,7 @@ export function readSubmission(body: unknown): { submission: Submission } | { fi
   const rules = readText(record.rules, "rules", limits.rules.min, limits.rules.max, fields);
   const hackathonUrl = readUrl(record.hackathonUrl, fields);
 
-  if (Object.keys(fields).length > 0 || !idea || !rules || !hackathonUrl) {
+  if (Object.keys(fields).length > 0 || !idea || !rules || hackathonUrl === undefined) {
     return { fields };
   }
 
@@ -40,9 +40,13 @@ function readText(
   return trimmed;
 }
 
+/** The hackathon page is optional (a theme preset has none): empty means "no page". */
 function readUrl(value: unknown, fields: FieldErrors): string | undefined {
-  if (typeof value !== "string" || value.trim() === "") {
-    fields.hackathonUrl = "Required.";
+  if (value === undefined || value === null || (typeof value === "string" && value.trim() === "")) {
+    return "";
+  }
+  if (typeof value !== "string") {
+    fields.hackathonUrl = "Use an http or https URL.";
     return undefined;
   }
   const trimmed = value.trim();

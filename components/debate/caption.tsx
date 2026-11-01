@@ -35,7 +35,7 @@ export function Caption({
             <TypedText text={line.text} progress={progress} />
           </motion.div>
         ) : (
-          <motion.p key={`empty-${emptyText}`} className="p-5 font-mono text-sm uppercase tracking-wider text-ink/50" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.p key={`empty-${emptyText}`} className="p-5 font-mono text-sm uppercase tracking-wider text-ink/65" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {emptyText}
           </motion.p>
         )}

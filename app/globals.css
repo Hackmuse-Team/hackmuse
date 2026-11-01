@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* HACKMUSE — neo-brutalist "courtroom" theme.
+/* HACKMUSE — neo-brutalist shark tank.
    Paper and ink, hard offset shadows in blood red, coral for action,
-   deep teal for chrome, mustard for the Chair. */
+   deep teal for chrome and water, mustard for the Tank Master. */
 
 :root {
   --cream: #f1ecdf;
@@ -66,6 +66,75 @@
 .judge-mouth-talk {
   animation: talk 0.32s ease-in-out infinite alternate;
 }
+
+/* The tank. Fins patrol in lanes (the lane moves, so a percentage means the water's width), bob
+   while they swim and dive on cue. Only transforms animate, so it stays on the compositor. */
+@keyframes fin-lane {
+  from { transform: translateX(-12%); }
+  to { transform: translateX(104%); }
+}
+@keyframes fin-bob {
+  from { transform: translateY(0) rotate(-2deg); }
+  to { transform: translateY(3px) rotate(2deg); }
+}
+@keyframes wave-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes ripple {
+  from { transform: scale(0.55); opacity: 0.7; }
+  to { transform: scale(1.15); opacity: 0; }
+}
+.fin-lane {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: fin-lane var(--swim, 12s) linear var(--delay, 0s) infinite;
+  animation-direction: var(--dir, normal);
+}
+.fin-dive {
+  position: absolute;
+  left: 0;
+  bottom: var(--depth, 10px);
+  transition: transform 0.55s cubic-bezier(0.55, 0, 0.75, 0.2);
+}
+[data-diving="true"] .fin-dive {
+  transform: translateY(160%);
+}
+.fin-body {
+  display: block;
+  animation: fin-bob var(--bob, 1.4s) ease-in-out infinite alternate;
+}
+.wave-strip {
+  animation: wave-drift var(--wave, 9s) linear infinite;
+}
+.tank-ripple {
+  animation: ripple 3.6s ease-out infinite;
+}
+
+/* Hero entrances in CSS, not JS: they play on first paint instead of waiting for hydration, which
+   on a slow phone kept the headline and the largest text invisible for seconds. */
+@keyframes rise-in {
+  from { transform: translateY(110%) rotate(4deg); }
+  to { transform: none; }
+}
+@keyframes nudge-up {
+  from { transform: translateY(14px); }
+  to { transform: none; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slam-in {
+  from { opacity: 0; transform: scale(2.4) rotate(-14deg); }
+  65% { opacity: 1; transform: scale(0.94) rotate(1.5deg); }
+  to { opacity: 1; transform: none; }
+}
+.anim-rise { animation: rise-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-nudge { animation: nudge-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-fade-up { animation: fade-up 0.6s ease-out both; }
+.anim-slam { animation: slam-in 0.65s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
 
 html {
   background: var(--cream);
@@ -141,5 +210,15 @@ html.lenis body {
   *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
+  }
+  /* Fins hold still, spread across the water, instead of ending their lap off-screen. */
+  .fin-lane {
+    animation: none;
+    transform: translateX(var(--rest, 30%));
+  }
+  .fin-body,
+  .wave-strip,
+  .tank-ripple {
+    animation: none;
   }
 }
