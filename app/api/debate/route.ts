@@ -2,6 +2,8 @@ import { MAX_IDEA, MIN_IDEA } from "@/lib/idea";
 import { streamDemo } from "@/lib/server/demo-debate";
 import { gemmaApiKey, streamDebate, type HackathonContext } from "@/lib/server/gemma";
 import type { StreamEvent } from "@/lib/types";
+import { rateRules } from "@/server/config";
+import { checkLimit, limitResponse } from "@/server/http/rate-limit";
 
 // Streams the debate as NDJSON (one StreamEvent per line) so the room can start
 // voicing the first lines while Gemma is still writing the rest.
@@ -25,6 +27,11 @@ export async function POST(request: Request) {
   }
 
   const apiKey = gemmaApiKey();
+  // Demo mode makes no Gemma call, so it is free and not counted.
+  if (!demo && apiKey) {
+    const blocked = checkLimit(request, "debate", rateRules().debate);
+    if (!blocked.ok) return limitResponse(blocked, "text");
+  }
   const signal = AbortSignal.any([request.signal, AbortSignal.timeout(120_000)]);
   const events = demo || !apiKey ? streamDemo(idea, signal) : streamDebate(idea, apiKey, signal, hackathon);
   const encoder = new TextEncoder();

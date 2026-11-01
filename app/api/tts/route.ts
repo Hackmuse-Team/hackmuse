@@ -1,4 +1,6 @@
 import { JUDGES, isJudgeId } from "@/lib/judges";
+import { rateRules } from "@/server/config";
+import { checkLimit, limitResponse } from "@/server/http/rate-limit";
 
 const DEFAULT_MODEL = "eleven_multilingual_v2";
 
@@ -29,6 +31,10 @@ export async function POST(request: Request) {
   if (!isJudgeId(speaker) || typeof text !== "string" || !text.trim() || text.length > 600) {
     return Response.json({ error: "Expected { speaker, text } with text ≤ 600 chars" }, { status: 400 });
   }
+
+  // ElevenLabs bills by character, so the site-wide daily budget counts characters.
+  const blocked = checkLimit(request, "tts", rateRules().tts, text.length);
+  if (!blocked.ok) return limitResponse(blocked, "text");
 
   const model = process.env.ELEVENLABS_MODEL || DEFAULT_MODEL;
   const voiceId =

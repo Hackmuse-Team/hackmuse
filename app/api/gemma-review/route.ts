@@ -1,5 +1,7 @@
 import { connection } from "next/server";
+import { rateRules } from "@/server/config";
 import { jsonError, readSubmission } from "@/server/http/submission";
+import { checkLimit, limitResponse } from "@/server/http/rate-limit";
 import { reviewWithGemma } from "@/server/gemma/review";
 
 export const maxDuration = 300;
@@ -20,6 +22,9 @@ export async function POST(request: Request) {
       fields: parsed.fields,
     });
   }
+
+  const blocked = checkLimit(request, "review", rateRules().review);
+  if (!blocked.ok) return limitResponse(blocked, "coded");
 
   try {
     const review = await reviewWithGemma({
