@@ -19,7 +19,7 @@ export function reviewOverall(review: GemmaReview): number | null {
 }
 
 export async function fetchReview(
-  body: { idea: string; hackathonUrl: string; rules: string },
+  body: { idea: string; hackathonUrl: string; rules: string; judgmentId?: string | null },
   signal: AbortSignal,
 ): Promise<GemmaReview> {
   const res = await fetch("/api/gemma-review", {

@@ -1,4 +1,5 @@
 import { BrutalLink } from "@/components/ui/brutal-button";
+import { WaitlistForm } from "@/components/ui/waitlist-form";
 
 export function SiteFooter() {
   return (
@@ -13,6 +14,18 @@ export function SiteFooter() {
         <BrutalLink href="/#pitch" tone="paper" size="lg" cursor="pitch">
           Pitch an idea <span aria-hidden>↑</span>
         </BrutalLink>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 pb-6 sm:px-6">
+        <div className="max-w-xl border-[3px] border-ink bg-paper p-5 shadow-brutal-sm">
+          <p className="font-mono text-xs font-bold uppercase tracking-[0.3em]">Running a hackathon?</p>
+          <p className="mt-1 text-base leading-snug">
+            Practice judging for every team, with your own rules as the rubric. Join the organizer waitlist.
+          </p>
+          <div className="mt-4">
+            <WaitlistForm source="organizer" />
+          </div>
+        </div>
       </div>
 
       {/* Hover-to-fill wordmark, after ui-layouts "hover-footer". */}

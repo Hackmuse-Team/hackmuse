@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { judgmentIdFromBody, saveReview } from "@/lib/server/db";
 import { rateRules } from "@/server/config";
 import { jsonError, readSubmission } from "@/server/http/submission";
 import { checkLimit, limitResponse } from "@/server/http/rate-limit";
@@ -32,6 +33,8 @@ export async function POST(request: Request) {
       hackathonUrl: parsed.submission.hackathonUrl,
       hackathonRules: parsed.submission.rules,
     });
+    const judgmentId = judgmentIdFromBody(body);
+    if (judgmentId && review.parsed) await saveReview(judgmentId, review);
     return Response.json(review);
   } catch (error) {
     const failure = publicFailure(error);

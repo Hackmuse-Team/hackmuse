@@ -6,7 +6,15 @@ import { Magnetic } from "@/components/effects/magnetic";
 import { BrutalButton } from "@/components/ui/brutal-button";
 import { SpotlightCard } from "@/components/ui/spotlight-card";
 import { useTypewriter } from "@/components/ui/typewriter";
-import { DEFAULT_HACKATHON, MAX_IDEA, MAX_RULES, MIN_IDEA, SAMPLE_IDEAS, saveIdea } from "@/lib/idea";
+import {
+  DEFAULT_HACKATHON,
+  MAX_IDEA,
+  MAX_RULES,
+  MIN_IDEA,
+  SAMPLE_IDEAS,
+  saveIdea,
+  saveJudgmentId,
+} from "@/lib/idea";
 import { cn } from "@/lib/utils";
 
 export function IdeaForm() {
@@ -25,7 +33,7 @@ export function IdeaForm() {
   const length = idea.trim().length;
   const tooShort = length < MIN_IDEA;
 
-  function submit() {
+  async function submit() {
     if (tooShort) {
       setError(`Give the judges a bit more — at least ${MIN_IDEA} characters.`);
       return;
@@ -36,7 +44,20 @@ export function IdeaForm() {
       return;
     }
     setSubmitting(true);
-    saveIdea(idea.trim(), { hackathonUrl: hackathonUrl.trim(), rules: rules.trim() });
+    const hackathon = { hackathonUrl: hackathonUrl.trim(), rules: rules.trim() };
+    saveIdea(idea.trim(), hackathon);
+    // Saving is best effort: without it the debate still runs from sessionStorage, it just can't be shared.
+    try {
+      const res = await fetch("/api/ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea: idea.trim(), ...hackathon }),
+      });
+      const data = await res.json().catch(() => null);
+      if (typeof data?.judgmentId === "string") saveJudgmentId(data.judgmentId);
+    } catch {
+      /* offline or blocked: carry on without a saved verdict */
+    }
     router.push("/debate");
   }
 

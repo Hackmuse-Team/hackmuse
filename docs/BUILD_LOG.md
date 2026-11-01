@@ -114,3 +114,22 @@ clicks leave a ripple. Scrolling re-hit-tests under a still pointer so brackets 
 - Counts live in process memory (reset on restart, single instance), like the job store. Move to the DB with persistence.
 - Verified on a dev server with fake keys and tiny limits: 11 checks (per-visitor, daily budget, spoofed header, demo mode,
   both error shapes) pass; `npm run lint` and `npm run build` pass.
+
+## 2026-11-01 — saved verdicts, share link, waitlist (Supabase)
+
+- Migration `supabase/migrations/0001_init.sql` (tables `ideas`, `judgments`, `waitlist`; RLS on, no policies, browser keys
+  revoked) applied to the new Supabase project; pgvector 0.8.2 enabled for the corpus later.
+- `lib/server/db.ts`: server-only client with the secret key. The browser never touches the database. Without the env vars
+  everything still runs on sessionStorage and the Share button and waitlist are off.
+- Env names are `HACKMUSE_SUPABASE_*` on purpose: a machine-wide `SUPABASE_URL` from another project overrode `.env.local`
+  and sent the app to the wrong database.
+- Flow: the idea form posts `/api/ideas` and keeps the judgment id in sessionStorage. `/api/debate` and `/api/gemma-review`
+  save their own output against that id (write-once, never demo debates), so a verdict cannot be forged from the browser.
+  Share (`/api/judgments/[id]/share`) flips `ideas.is_public`; `/v/[id]` renders it read-only and is `noindex`.
+- `/api/waitlist`: email + source, honeypot, rate limited, duplicates answered like new signups. Form in the footer and on `/v/[id]`.
+- Cache Components forbids `dynamic = "force-dynamic"`: `/v/[id]` is a static shell with the data read inside Suspense, and the
+  global `Cursor` (reads the URL) is wrapped in Suspense in `app/layout.tsx`.
+- Verified against the real project: 11 API checks, plus a real Gemma debate and review through the browser, share link opened in a
+  separate tab. The debate saved in 14.5 s of stream time; the review saved 96 s later with 8 scored criteria. Test rows deleted.
+- Seen while testing: the 8-criterion review gave an obviously flattering 95/100 for "winner pattern" and 100 for concept clarity
+  against the default Linz hack day rules. That is the ungrounded-score problem the corpus and eval loop are for.

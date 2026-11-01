@@ -1,4 +1,5 @@
 import { MAX_IDEA, MIN_IDEA } from "@/lib/idea";
+import { judgmentIdFromBody, saveDebate } from "@/lib/server/db";
 import { streamDemo } from "@/lib/server/demo-debate";
 import { gemmaApiKey, streamDebate, type HackathonContext } from "@/lib/server/gemma";
 import type { StreamEvent } from "@/lib/types";
@@ -11,8 +12,10 @@ export async function POST(request: Request) {
   let idea = "";
   let demo = false;
   let hackathon: HackathonContext | undefined;
+  let judgmentId: string | null = null;
   try {
     const body = await request.json();
+    judgmentId = judgmentIdFromBody(body);
     idea = typeof body?.idea === "string" ? body.idea.trim() : "";
     demo = body?.demo === true;
     const url = typeof body?.hackathonUrl === "string" ? body.hackathonUrl.trim() : "";
@@ -35,12 +38,20 @@ export async function POST(request: Request) {
   const signal = AbortSignal.any([request.signal, AbortSignal.timeout(120_000)]);
   const events = demo || !apiKey ? streamDemo(idea, signal) : streamDebate(idea, apiKey, signal, hackathon);
   const encoder = new TextEncoder();
+  const startedAt = Date.now();
 
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (e: StreamEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
       try {
-        for await (const event of events) send(event);
+        for await (const event of events) {
+          send(event);
+          // Saved here, from what the server produced, so a verdict can't be written from the browser.
+          // Demo debates are placeholders and are never saved.
+          if (event.type === "debate" && event.debate.source === "gemma" && judgmentId) {
+            await saveDebate(judgmentId, event.debate, Date.now() - startedAt);
+          }
+        }
       } catch (err) {
         console.error("[debate] Gemma failed:", err);
         if (!request.signal.aborted) {
