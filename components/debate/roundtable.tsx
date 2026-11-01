@@ -78,17 +78,24 @@ export function Roundtable({
 
   return (
     <div className="relative mx-auto aspect-square w-full max-w-[600px] select-none">
-      {/* Table */}
+      {/* The tank: deep water with ripples spreading from the middle */}
       <motion.div
-        className="absolute left-1/2 top-1/2 flex aspect-square w-[40%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-[3px] border-ink bg-mustard shadow-[10px_10px_0_0_var(--blood)]"
+        className="absolute left-1/2 top-1/2 flex aspect-square w-[40%] -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-[3px] border-ink bg-teal-deep text-cream shadow-[10px_10px_0_0_var(--blood)]"
         animate={deliberating ? { rotate: [0, 2, -2, 0] } : { rotate: 0 }}
         transition={deliberating ? { repeat: Infinity, duration: 2.4 } : undefined}
       >
-        <div className="bg-halftone absolute inset-3 rounded-full opacity-20" />
-        <div className="absolute inset-[9%] rounded-full border-2 border-dashed border-ink/40" />
+        {[0, 1.2, 2.4].map((delay) => (
+          <span
+            key={delay}
+            aria-hidden
+            className="tank-ripple absolute inset-[6%] rounded-full border-2 border-cream/40"
+            style={{ animationDelay: `${delay}s` }}
+          />
+        ))}
+        <div className="absolute inset-[9%] rounded-full border-2 border-dashed border-cream/25" />
         <div className="relative px-[12%] text-center">
-          <p className="font-mono text-[clamp(8px,1.4vw,10px)] font-bold uppercase tracking-[0.25em]">
-            {deliberating ? "Deliberating" : done ? "Verdict in" : "On the table"}
+          <p className="font-mono text-[clamp(8px,1.4vw,10px)] font-bold uppercase tracking-[0.25em] text-mustard">
+            {deliberating ? "Circling" : done ? "Verdict in" : "In the tank"}
           </p>
           <p className="mt-1 line-clamp-3 font-display text-[clamp(1rem,3.2vw,2rem)] font-black uppercase leading-[0.9]">
             {title ?? "· · ·"}
@@ -159,11 +166,12 @@ export function Roundtable({
               )}
               style={{ backgroundColor: isActive || done ? judge.color : "var(--paper)" }}
             >
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Phones: avatar above the name, so short names fit without truncating. */}
+              <div className="flex flex-col items-center gap-1 text-center sm:flex-row sm:gap-2 sm:text-left">
                 <JudgeAvatar id={id} className="w-8 shrink-0 sm:w-10" />
-                <div className="min-w-0">
+                <div className="min-w-0 max-w-full">
                   <p className="truncate font-display text-sm font-black uppercase leading-none sm:text-base">{judge.short}</p>
-                  <p className="truncate font-mono text-[7px] font-bold uppercase tracking-wider text-ink/70 sm:text-[8px]">{judge.role}</p>
+                  <p className="hidden truncate font-mono text-[8px] font-bold uppercase tracking-wider text-ink/70 sm:block">{judge.role}</p>
                 </div>
               </div>
               <div className="mt-1.5 flex items-center justify-between gap-1">

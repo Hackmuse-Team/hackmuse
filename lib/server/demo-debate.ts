@@ -41,21 +41,21 @@ function shortTitle(idea: string) {
 export async function* streamDemo(idea: string, signal?: AbortSignal): AsyncGenerator<StreamEvent> {
   const rand = rng(hash(idea));
   const pick = () => 3 + Math.floor(rand() * 7);
-  const snippet = idea.length > 90 ? `${idea.slice(0, 87).trim()}…` : idea;
+  const snippet = idea.length > 90 ? `${idea.slice(0, 87).trim()}…` : /[.!?…]$/.test(idea.trim()) ? idea.trim() : `${idea.trim()}.`;
   const title = shortTitle(idea);
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   const raw = [
-    { speaker: "chair", replyTo: null, cue: "warm", text: `Order, everyone. On the table tonight: ${snippet} Shark, you look hungry.` },
+    { speaker: "chair", replyTo: null, cue: "warm", text: `The tank is open. Tonight's idea: ${snippet} Market Shark, you look hungry.` },
     { speaker: "shark", replyTo: null, cue: "skeptical", text: `I'll be blunt. I don't see who pays for ${title}. Hackathon judges love a demo, but investors love a customer, and I can't name one yet.` },
     { speaker: "builder", replyTo: null, cue: "dry", text: "The happy path is a weekend of work. The hard part is the data: where it comes from, how fresh it is, and what happens when it's wrong." },
     { speaker: "angel", replyTo: null, cue: "warm", text: "Before the product, the people. Whoever pitches this needs a reason they, specifically, should build it. Give me that and I'm listening." },
     { speaker: "visionary", replyTo: null, cue: "excited", text: "You're all missing the moment. Picture the demo: one input, and the room watches it come alive. That's the thing people will talk about at dinner." },
     { speaker: "operator", replyTo: null, cue: "dry", text: "Nice moment. Now tell me how the first hundred users find it. A demo isn't a channel." },
-    { speaker: "shark", replyTo: "visionary", cue: "dry", text: "Visionary, dinner conversation isn't a business. Give me one person who'd be angry if this disappeared tomorrow." },
-    { speaker: "builder", replyTo: "shark", cue: "firm", text: "Shark, it's a hackathon, not a Series A. If they scope it to one sharp flow and fake nothing, it's buildable and honest." },
-    { speaker: "operator", replyTo: "visionary", cue: "firm", text: "Visionary, polish without distribution is a beautiful empty room. Launch it where the users already are." },
-    { speaker: "chair", replyTo: null, cue: "firm", text: "Verdict: a demo-friendly idea with a clear hook. Biggest strength, the moment it creates. Biggest risk, nobody yet owns the problem it solves." },
+    { speaker: "shark", replyTo: "visionary", cue: "dry", text: "Novelty, dinner conversation isn't a business. Give me one person who'd be angry if this disappeared tomorrow." },
+    { speaker: "builder", replyTo: "shark", cue: "firm", text: "Market, it's a hackathon, not a Series A. If they scope it to one sharp flow and fake nothing, it's buildable and honest." },
+    { speaker: "operator", replyTo: "visionary", cue: "firm", text: "Novelty, polish without distribution is a beautiful empty room. Launch it where the users already are." },
+    { speaker: "chair", replyTo: null, cue: "firm", text: "Verdict: a demo-friendly idea with a clear hook. Biggest strength, the moment it creates. The bite that matters, nobody yet owns the problem it solves." },
   ];
 
   yield { type: "meta", source: "demo", model: "demo" };

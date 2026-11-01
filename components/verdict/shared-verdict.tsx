@@ -1,7 +1,7 @@
 import { JudgeAvatar } from "@/components/judge-avatar";
 import { JUDGES, VOTING_JUDGES } from "@/lib/judges";
 import { reviewOverall } from "@/lib/review";
-import { RUBRIC, gradeFor } from "@/lib/rubric";
+import { RUBRIC, SURVIVE_AT, gradeFor, survival } from "@/lib/rubric";
 import type { PublicVerdict } from "@/lib/server/db";
 
 /** Read-only verdict for the public share page. No animation and no client code, so it renders fast anywhere. */
@@ -11,6 +11,7 @@ export function SharedVerdict({ verdict }: { verdict: PublicVerdict }) {
   const overall = reviewScore ?? debate.overall;
   const grade = gradeFor(overall);
   const reviewRows = reviewScore !== null ? review!.criteria : null;
+  const survived = survival(debate.votes);
 
   return (
     <div className="space-y-8">
@@ -43,20 +44,31 @@ export function SharedVerdict({ verdict }: { verdict: PublicVerdict }) {
             <p className="mt-5 font-display text-2xl font-black uppercase">{grade.blurb}</p>
             <blockquote className="mt-4 border-l-[6px] border-mustard bg-cream p-4 text-lg font-medium leading-snug">
               &ldquo;{debate.verdict}&rdquo;
-              <footer className="mt-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink/60">— The Chair</footer>
+              <footer className="mt-2 font-mono text-[11px] font-bold uppercase tracking-wider text-ink/70">— The Tank Master</footer>
             </blockquote>
-            <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {VOTING_JUDGES.map((id) => (
-                <div
-                  key={id}
-                  className="flex flex-col items-center border-[3px] border-ink p-1.5 text-center"
-                  style={{ backgroundColor: JUDGES[id].color }}
-                >
-                  <JudgeAvatar id={id} className="w-10 bg-paper!" />
-                  <p className="mt-1 font-display text-3xl font-black leading-none tabular-nums">{debate.votes[id]}</p>
-                  <p className="font-mono text-[8px] font-bold uppercase tracking-wider">{JUDGES[id].short}</p>
-                </div>
-              ))}
+            <p className="mt-6 font-mono text-[11px] font-bold uppercase tracking-[0.2em]">
+              {survived.line} <span className="text-ink/65">· a shark lets go at {SURVIVE_AT}/10</span>
+            </p>
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {VOTING_JUDGES.map((id) => {
+                const letGo = survived.survived.includes(id);
+                return (
+                  <div
+                    key={id}
+                    className="flex flex-col items-center border-[3px] border-ink p-1.5 text-center"
+                    style={{ backgroundColor: letGo ? JUDGES[id].color : "var(--paper)" }}
+                  >
+                    <JudgeAvatar id={id} className="w-10 bg-paper!" />
+                    <p className="mt-1 font-display text-3xl font-black leading-none tabular-nums">{debate.votes[id]}</p>
+                    <p className="font-mono text-[8px] font-bold uppercase tracking-wider">{JUDGES[id].short}</p>
+                    <span
+                      className={`mt-1 w-full border-t-2 border-ink pt-0.5 font-mono text-[8px] font-bold uppercase tracking-widest ${letGo ? "" : "text-coral-deep"}`}
+                    >
+                      {letGo ? "Let go" : "Bit"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -72,7 +84,13 @@ export function SharedVerdict({ verdict }: { verdict: PublicVerdict }) {
                     <Row key={c.id} label={c.label} value={c.score} max={100} note={c.explanation} />
                   ))
                 : RUBRIC.map((c) => (
-                    <Row key={c.id} label={c.label} value={debate.scores[c.id].score} max={10} note={debate.scores[c.id].note} />
+                    <Row
+                      key={c.id}
+                      label={c.label}
+                      value={debate.scores[c.id]?.score ?? null}
+                      max={10}
+                      note={debate.scores[c.id]?.note ?? ""}
+                    />
                   ))}
             </ul>
           </div>
@@ -84,7 +102,7 @@ export function SharedVerdict({ verdict }: { verdict: PublicVerdict }) {
       </div>
 
       <p className="max-w-2xl text-sm leading-snug text-ink/70">
-        Scored by an AI panel (Gemma 4) from the idea as written. It says nothing about the team, the demo or the polish,
+        Scored by a tank of AI sharks (Gemma 4) from the idea as written. It says nothing about the team, the demo or the polish,
         so treat it as a critique to work with, not a prediction.
       </p>
     </div>

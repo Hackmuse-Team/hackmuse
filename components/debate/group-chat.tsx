@@ -17,12 +17,12 @@ const STEP = { each: 600, post: 400, settle: 200 };
  * fills at the table) and onAssembled once everyone is in. Nothing loops after.
  */
 export function GroupChat({
-  caseNo,
+  tankNo,
   waiting,
   onJoin,
   onAssembled,
 }: {
-  caseNo: string;
+  tankNo: string;
   /** True while there's still nothing to play. */
   waiting: boolean;
   onJoin: (id: JudgeId) => void;
@@ -60,7 +60,7 @@ export function GroupChat({
     });
 
     return () => list.forEach(clearTimeout);
-  }, [caseNo]);
+  }, [tankNo]);
 
   const skip = () => {
     timers.current.forEach(clearTimeout);
@@ -81,9 +81,9 @@ export function GroupChat({
       {/* Header */}
       <div className="flex items-center justify-between gap-3 border-b-[3px] border-ink bg-teal px-3 py-2 text-cream">
         <div className="min-w-0">
-          <p className="truncate font-display text-xl font-black uppercase leading-none">#case-{caseNo}</p>
+          <p className="truncate font-display text-xl font-black uppercase leading-none">#tank-{tankNo}</p>
           <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-cream/70">
-            {entries.length}/{JUDGE_ORDER.length} online · private panel
+            {entries.length}/{JUDGE_ORDER.length} online · private tank
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -116,7 +116,7 @@ export function GroupChat({
           >
             <JudgeAvatar id={e.who} className="w-8 shrink-0" />
             <div className="min-w-0">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-ink/60">{JUDGES[e.who].name}</p>
+              <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-ink/70">{JUDGES[e.who].name}</p>
               <div
                 className="min-h-[2.1rem] border-2 border-ink px-2.5 py-1.5 text-sm leading-snug shadow-[3px_3px_0_0_var(--ink)]"
                 style={{ backgroundColor: e.text === null ? "var(--paper)" : JUDGES[e.who].color }}
@@ -142,8 +142,8 @@ export function GroupChat({
       </div>
 
       {/* Static status */}
-      <div className="border-t-[3px] border-ink bg-cream px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-ink/50">
-        {waiting ? "Gemma 4 is writing the debate…" : "Panel ready"}
+      <div className="border-t-[3px] border-ink bg-cream px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-ink/65">
+        {waiting ? "Gemma 4 is writing the debate…" : "Sharks ready"}
       </div>
     </div>
   );

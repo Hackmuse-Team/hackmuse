@@ -1,5 +1,6 @@
 import { ScrollProgress } from "@/components/effects/scroll-progress";
 import { Hero } from "@/components/landing/hero";
+import { Faq } from "@/components/landing/faq";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { MarqueeBands } from "@/components/landing/marquee-bands";
 import { Panel } from "@/components/landing/panel";
@@ -18,6 +19,7 @@ export default function Home() {
         <Panel />
         <HowItWorks />
         <RubricSection />
+        <Faq />
       </main>
       <SiteFooter />
     </>

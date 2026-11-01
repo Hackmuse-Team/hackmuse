@@ -33,10 +33,10 @@ export function Transcript({
           <span className="h-3 w-3 border border-ink bg-mustard" />
           <span className="h-3 w-3 border border-ink bg-mint" />
         </div>
-        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-cream/60">court_record.log</span>
+        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-cream/60">tank_feed.log</span>
       </div>
       <div ref={scroller} data-lenis-prevent className="flex-1 space-y-3 overflow-y-auto p-3 font-mono text-[12.5px] leading-relaxed lg:max-h-[22rem]">
-        <p className="text-cream/40">$ hackmuse --convene-panel</p>
+        <p className="text-cream/40">$ hackmuse --open-tank</p>
         {visible.map((l, i) => (
           <motion.button
             key={i}

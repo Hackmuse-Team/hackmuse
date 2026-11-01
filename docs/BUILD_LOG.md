@@ -133,3 +133,20 @@ clicks leave a ripple. Scrolling re-hit-tests under a still pointer so brackets 
   separate tab. The debate saved in 14.5 s of stream time; the review saved 96 s later with 8 scored criteria. Test rows deleted.
 - Seen while testing: the 8-criterion review gave an obviously flattering 95/100 for "winner pattern" and 100 for concept clarity
   against the default Linz hack day rules. That is the ungrounded-score problem the corpus and eval loop are for.
+
+## 2026-11-01 — week 2: shark reframe, share images, speed
+
+- See DECISIONS S1–S9. Landing: new hero ("Throw your hackathon idea to the sharks."), fins patrolling under the form (Web
+  Animations API speeds them up while you type; they dive on submit; static under reduced motion), panel "Five sharks. One
+  Tank Master.", how-it-works, scoring section, FAQ, footer, header. Debate room: the round table is now the tank (water,
+  ripples), shark seats, tank chat/feed wording. Scorecard and `/v/[id]`: survival strip.
+- Verified: real Gemma debate returns 10 lines, all 8 criteria with notes and 5 votes in the new format; voice cache MISS
+  0.71 s → HIT 0.004 s, identical audio; share images render (landing, verdict, unknown id); security headers present; 404
+  returns 404.
+- Lighthouse (production build, landing): desktop 99 / 100 / 100 / 100 (perf / a11y / best practices / SEO); mobile
+  84 / 100 / 100 / 100. Mobile LCP is 4.3 s *simulated*; the observed LCP in the same run is 1.4 s (= FCP). The gap is
+  Lighthouse charging ~260 KB of JS (Motion, Lenis, React) to the paint; cutting it means cutting the animation libraries.
+- Phone check (Playwright, installed Chrome, 390×844, isMobile): no horizontal overflow on `/`, `/debate`, 404. Fixed on the
+  way: the hero grid widened past the screen (no-wrap idea chips) — minmax(0) columns; seat names truncated — stacked on phones.
+- Gotchas: Satori (next/og) has no `double` borders and only reads TTF/OTF; Cache Components needs `connection()` in the
+  verdict image route; a 390 px headless desktop window is clamped wider, so use device emulation for phone checks.
