@@ -101,3 +101,16 @@ clicks leave a ripple. Scrolling re-hit-tests under a still pointer so brackets 
   about 1 s. The review usually lands after the verdict.
 - Not wired: `/api/evaluations` (podcast + research + analysis pipeline). Its live LLM, search, page and speech
   providers are still placeholders that throw, so only the stub fixtures run.
+
+## 2026-11-01 — rate limits on the routes that spend money
+
+- `server/http/rate-limit.ts`: per-visitor window plus a site-wide daily budget (UTC day) on `/api/tts` (counts
+  ElevenLabs characters), `/api/debate` and `/api/gemma-review`. Defaults and env names are in `server/config.ts`
+  (`rateRules`) and `.env.example`. Demo-mode debates are not counted.
+- Visitor = the `TRUSTED_PROXY_HOPS`-th entry from the right of `X-Forwarded-For`; a spoofed leftmost entry does not
+  buy a new quota. The daily budget is the hard cap.
+- Per-visitor over limit: 429 + `Retry-After`. Daily budget spent: 503, which the debate room already treats as
+  captions-only on TTS.
+- Counts live in process memory (reset on restart, single instance), like the job store. Move to the DB with persistence.
+- Verified on a dev server with fake keys and tiny limits: 11 checks (per-visitor, daily budget, spoofed header, demo mode,
+  both error shapes) pass; `npm run lint` and `npm run build` pass.

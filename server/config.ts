@@ -27,3 +27,33 @@ export function voiceIdFor(speaker: "host" | "critic"): string {
 export function providerMode(name: string | undefined): "stub" | "live" {
   return name === "live" ? "live" : "stub";
 }
+
+function positiveIntFromEnv(name: string, fallback: number): number {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : fallback;
+}
+
+/**
+ * Abuse guards for the routes that spend money. `perVisitor` is per client in `windowMs`;
+ * `daily` is site-wide per UTC day (characters for tts, requests for the rest).
+ */
+export function rateRules() {
+  return {
+    trustedProxyHops: positiveIntFromEnv("TRUSTED_PROXY_HOPS", 1),
+    tts: {
+      perVisitor: positiveIntFromEnv("LIMIT_TTS_PER_VISITOR", 40),
+      windowMs: 10 * 60_000,
+      daily: positiveIntFromEnv("LIMIT_TTS_DAILY_CHARS", 60_000),
+    },
+    debate: {
+      perVisitor: positiveIntFromEnv("LIMIT_DEBATE_PER_VISITOR", 8),
+      windowMs: 60 * 60_000,
+      daily: positiveIntFromEnv("LIMIT_DEBATE_DAILY", 300),
+    },
+    review: {
+      perVisitor: positiveIntFromEnv("LIMIT_REVIEW_PER_VISITOR", 6),
+      windowMs: 60 * 60_000,
+      daily: positiveIntFromEnv("LIMIT_REVIEW_DAILY", 200),
+    },
+  } as const;
+}
