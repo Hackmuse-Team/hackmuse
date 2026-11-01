@@ -3,30 +3,9 @@
 import { motion, useScroll, useTransform } from "motion/react";
 import Link from "next/link";
 import { useRef, useSyncExternalStore } from "react";
-import { FinShape } from "@/components/effects/shark-water";
 import { JudgeAvatar } from "@/components/judge-avatar";
 import { DEBATE_LENGTH, JUDGES, JUDGE_ORDER, VOTING_JUDGES } from "@/lib/judges";
 import { IdeaForm } from "./idea-form";
-
-function SpinningSticker() {
-  const text = "★ NO MERCY ★ NO FLUFF ★ HONEST SCORES ★ OUT LOUD ";
-  return (
-    <div className="relative h-28 w-28">
-      <svg viewBox="0 0 200 200" className="h-full w-full animate-spin-slow">
-        <defs>
-          <path id="sticker-circle" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0" />
-        </defs>
-        <circle cx="100" cy="100" r="98" fill="var(--mustard)" stroke="var(--ink)" strokeWidth="4" />
-        <text className="fill-ink font-mono text-[17px] font-bold tracking-[0.12em]">
-          <textPath href="#sticker-circle">{text}</textPath>
-        </text>
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center">
-        <FinShape color="var(--coral)" size={40} />
-      </span>
-    </div>
-  );
-}
 
 // Parallax only on wide screens: on a phone the headline lines would slide into each other mid-scroll.
 const WIDE = "(min-width: 1024px)";
@@ -81,9 +60,6 @@ export function Hero() {
                 className="anim-slam inline-block border-[3px] border-ink bg-coral px-4 py-1 text-[clamp(3.2rem,8.4vw,7.2rem)] shadow-brutal"
               >
                 sharks.
-              </span>
-              <span className="pointer-events-none absolute left-full top-1/2 ml-8 hidden -translate-y-1/2 xl:block">
-                <SpinningSticker />
               </span>
             </motion.span>
           </h1>
