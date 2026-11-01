@@ -20,6 +20,8 @@ const IDEA_KEY = "hackmuse:idea";
 const DEBATE_KEY = "hackmuse:debate";
 const HACKATHON_KEY = "hackmuse:hackathon";
 const REVIEW_KEY = "hackmuse:review";
+// The saved verdict this session's debate and review fill in; absent when the database is off.
+const JUDGMENT_KEY = "hackmuse:judgment";
 
 /** Where the idea is pitched. Defaults to today's event so the demo needs one field. */
 export interface Hackathon {
@@ -47,6 +49,15 @@ export function saveIdea(idea: string, hackathon: Hackathon) {
   storage()?.setItem(HACKATHON_KEY, JSON.stringify(hackathon));
   storage()?.removeItem(DEBATE_KEY);
   storage()?.removeItem(REVIEW_KEY);
+  storage()?.removeItem(JUDGMENT_KEY);
+}
+
+export function saveJudgmentId(id: string) {
+  storage()?.setItem(JUDGMENT_KEY, id);
+}
+
+export function loadJudgmentId(): string | null {
+  return storage()?.getItem(JUDGMENT_KEY) ?? null;
 }
 
 export function loadHackathon(): Hackathon {

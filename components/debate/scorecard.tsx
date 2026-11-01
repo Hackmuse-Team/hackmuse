@@ -32,12 +32,15 @@ function summary(d: Debate, review: GemmaReview | null) {
 export function Scorecard({
   debate,
   review,
+  judgmentId,
   onRetryReview,
   onReplay,
   onJoinCall,
 }: {
   debate: Debate;
   review: ReviewState | null;
+  /** The saved verdict this scorecard belongs to; the Share button only shows when there is one. */
+  judgmentId?: string | null;
   onRetryReview?: () => void;
   onReplay: () => void;
   onJoinCall: () => void;
@@ -48,7 +51,23 @@ export function Scorecard({
   const shake = useAnimationControls();
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [share, setShare] = useState<{ status: "idle" | "busy" | "failed"; url?: string }>({ status: "idle" });
   const grade = gradeFor(debate.overall);
+
+  async function shareVerdict() {
+    if (!judgmentId) return;
+    setShare({ status: "busy" });
+    try {
+      const res = await fetch(`/api/judgments/${judgmentId}/share`, { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || typeof data?.path !== "string") throw new Error(data?.error?.message ?? "share failed");
+      const url = `${window.location.origin}${data.path}`;
+      await navigator.clipboard.writeText(url).catch(() => {});
+      setShare({ status: "idle", url });
+    } catch {
+      setShare({ status: "failed" });
+    }
+  }
 
   useEffect(() => {
     if (!inView) return;
@@ -231,7 +250,28 @@ export function Scorecard({
         >
           {copied ? "Copied ✓" : "Copy verdict"}
         </BrutalButton>
+        {judgmentId && (
+          <BrutalButton size="lg" cursor="share" disabled={share.status === "busy"} onClick={shareVerdict}>
+            {share.status === "busy" ? "Making the link…" : "Share verdict"}
+          </BrutalButton>
+        )}
       </div>
+      {judgmentId && (
+        <p role="status" className="mt-3 max-w-2xl text-sm leading-snug text-ink/70">
+          {share.url ? (
+            <>
+              Link copied. Anyone with it can read your idea and this verdict:{" "}
+              <a href={share.url} target="_blank" rel="noreferrer" data-cursor="open" className="font-bold underline underline-offset-2">
+                {share.url}
+              </a>
+            </>
+          ) : share.status === "failed" ? (
+            "Couldn't make the link. Try again in a moment."
+          ) : (
+            "Sharing makes your idea and this verdict readable by anyone with the link."
+          )}
+        </p>
+      )}
 
       {/* Roughens the stamp edges like real ink. */}
       <svg width="0" height="0" className="absolute" aria-hidden>

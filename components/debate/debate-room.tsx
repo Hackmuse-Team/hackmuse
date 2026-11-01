@@ -8,7 +8,15 @@ import { Logo } from "@/components/landing/site-header";
 import { BrutalButton, BrutalLink } from "@/components/ui/brutal-button";
 import { RandomizedText } from "@/components/ui/randomized-text";
 import { DebateEngine, IDLE_SNAPSHOT, type PlayerSnapshot } from "@/lib/client/debate-engine";
-import { loadDebate, loadHackathon, loadIdea, loadReview, saveDebate, saveReview } from "@/lib/idea";
+import {
+  loadDebate,
+  loadHackathon,
+  loadIdea,
+  loadJudgmentId,
+  loadReview,
+  saveDebate,
+  saveReview,
+} from "@/lib/idea";
 import { DEBATE_LENGTH, type JudgeId } from "@/lib/judges";
 import { fetchReview, reviewOverall, type ReviewState } from "@/lib/review";
 import type { Debate, StreamEvent } from "@/lib/types";
@@ -74,7 +82,7 @@ export function DebateRoom() {
     reviewAbortRef.current = ctrl;
     setReview({ status: "loading" });
     try {
-      const result = await fetchReview({ idea, ...loadHackathon() }, ctrl.signal);
+      const result = await fetchReview({ idea, judgmentId: loadJudgmentId(), ...loadHackathon() }, ctrl.signal);
       if (ctrl.signal.aborted) return;
       saveReview(idea, result);
       setReview({ status: "ready", review: result });
@@ -100,7 +108,7 @@ export function DebateRoom() {
       const res = await fetch("/api/debate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea, demo, ...loadHackathon() }),
+        body: JSON.stringify({ idea, demo, judgmentId: loadJudgmentId(), ...loadHackathon() }),
         signal: ctrl.signal,
       });
       if (!res.ok) {
@@ -338,6 +346,7 @@ export function DebateRoom() {
               <Scorecard
                 debate={debate}
                 review={review}
+                judgmentId={session?.source === "gemma" ? loadJudgmentId() : null}
                 onRetryReview={session ? () => requestReview(session.idea) : undefined}
                 onReplay={() => {
                   engine?.jumpTo(0);

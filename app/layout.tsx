@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, Inter, Space_Mono } from "next/font/google";
+import { Suspense } from "react";
 import { Cursor } from "@/components/effects/cursor";
 import { Noise } from "@/components/effects/noise";
 import { SmoothScroll } from "@/components/effects/smooth-scroll";
@@ -38,7 +39,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <SmoothScroll>{children}</SmoothScroll>
         <Noise />
-        <Cursor />
+        {/* Reads the URL, which a dynamic route like /v/[id] only knows at request time. */}
+        <Suspense fallback={null}>
+          <Cursor />
+        </Suspense>
       </body>
     </html>
   );
