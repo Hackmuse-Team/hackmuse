@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform } from "motion/react";
 import Link from "next/link";
 import { useRef, useSyncExternalStore } from "react";
 import { JudgeAvatar } from "@/components/judge-avatar";
+import { startDemoSession } from "@/lib/idea";
 import { DEBATE_LENGTH, JUDGES, JUDGE_ORDER, VOTING_JUDGES } from "@/lib/judges";
 import { IdeaForm } from "./idea-form";
 
@@ -92,6 +93,7 @@ export function Hero() {
             <div className="anim-fade-up" style={delay(1.1)}>
               <Link
                 href="/debate?demo=1"
+                onClick={() => startDemoSession()}
                 data-cursor="watch"
                 className="group inline-flex items-center gap-2 border-b-[3px] border-ink pb-0.5 font-mono text-xs font-bold uppercase tracking-widest"
               >

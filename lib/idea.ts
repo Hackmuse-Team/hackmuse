@@ -24,6 +24,8 @@ const HACKATHON_KEY = "hackmuse:hackathon:v2";
 const REVIEW_KEY = "hackmuse:review:v2";
 // The saved verdict this session's debate and review fill in; absent when the database is off.
 const JUDGMENT_KEY = "hackmuse:judgment";
+// Set while this tab is watching the demo, so it does not depend on ?demo=1 surviving navigation.
+const DEMO_KEY = "hackmuse:demo";
 
 /** Where the idea is pitched: a theme preset (no page) or the person's own event. */
 export interface Hackathon {
@@ -53,6 +55,18 @@ export function saveIdea(idea: string, hackathon: Hackathon) {
   storage()?.removeItem(DEBATE_KEY);
   storage()?.removeItem(REVIEW_KEY);
   storage()?.removeItem(JUDGMENT_KEY);
+  storage()?.removeItem(DEMO_KEY);
+}
+
+/** Start the scripted demo on a sample idea. Replaces whatever draft this tab had. */
+export function startDemoSession(idea: string = SAMPLE_IDEAS[0]): string {
+  saveIdea(idea, DEFAULT_HACKATHON);
+  storage()?.setItem(DEMO_KEY, "1");
+  return idea;
+}
+
+export function isDemoSession(): boolean {
+  return storage()?.getItem(DEMO_KEY) === "1";
 }
 
 export function saveJudgmentId(id: string) {
